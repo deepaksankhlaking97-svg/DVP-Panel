@@ -1,0 +1,17 @@
+[Unit]
+Description=Docker VPS Management Panel
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/dockervps
+ExecStart=/opt/dockervps/venv/bin/python3 /opt/dockervps/app.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
