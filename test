@@ -6,26 +6,25 @@ echo "       VPS PORT FORWARDER"
 echo "======================================"
 echo
 
-read -p "Target VPS IP: " TARGET_IP
-read -p "Source Port (e.g. 19132): " SOURCE_PORT
-read -p "Target Port (e.g. 19100): " TARGET_PORT
-
-YOUR_IP=$(curl -4 -s ifconfig.me)
+# Auto detect public IP
+YOUR_IP=$(curl -4 -s https://ifconfig.me)
 
 if [[ -z "$YOUR_IP" ]]; then
-    echo "❌ Could not detect VPS public IP."
+    echo "❌ VPS public IP detect nahi hua."
     exit 1
 fi
 
-echo
-echo "Source : $YOUR_IP:$SOURCE_PORT"
-echo "Target : $TARGET_IP:$TARGET_PORT"
+echo "VPS IP: $YOUR_IP"
 echo
 
-# Enable IPv4 forwarding
+read -p "Target VPS IP: " TARGET_IP
+read -p "Source Port: " SOURCE_PORT
+read -p "Target Port: " TARGET_PORT
+
+# Enable IP forwarding
 sysctl -w net.ipv4.ip_forward=1 >/dev/null
 
-# Forward TCP
+# TCP
 iptables -t nat -A PREROUTING \
     -d "$YOUR_IP" \
     -p tcp \
@@ -33,7 +32,7 @@ iptables -t nat -A PREROUTING \
     -j DNAT \
     --to-destination "$TARGET_IP:$TARGET_PORT"
 
-# Forward UDP
+# UDP
 iptables -t nat -A PREROUTING \
     -d "$YOUR_IP" \
     -p udp \
@@ -41,7 +40,7 @@ iptables -t nat -A PREROUTING \
     -j DNAT \
     --to-destination "$TARGET_IP:$TARGET_PORT"
 
-# SNAT
+# NAT
 iptables -t nat -A POSTROUTING \
     -p tcp \
     -d "$TARGET_IP" \
@@ -55,7 +54,11 @@ iptables -t nat -A POSTROUTING \
     -j MASQUERADE
 
 echo
-echo "✅ Port forwarding enabled!"
+echo "======================================"
+echo "✅ FORWARDING ENABLED"
+echo "======================================"
 echo
-echo "$YOUR_IP:$SOURCE_PORT → $TARGET_IP:$TARGET_PORT"
+echo "$YOUR_IP:$SOURCE_PORT"
+echo "        ↓"
+echo "$TARGET_IP:$TARGET_PORT"
 echo
