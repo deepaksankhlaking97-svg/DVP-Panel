@@ -1,0 +1,61 @@
+#!/bin/bash
+
+clear
+echo "======================================"
+echo "       VPS PORT FORWARDER"
+echo "======================================"
+echo
+
+read -p "Target VPS IP: " TARGET_IP
+read -p "Source Port (e.g. 19132): " SOURCE_PORT
+read -p "Target Port (e.g. 19100): " TARGET_PORT
+
+YOUR_IP=$(curl -4 -s ifconfig.me)
+
+if [[ -z "$YOUR_IP" ]]; then
+    echo "❌ Could not detect VPS public IP."
+    exit 1
+fi
+
+echo
+echo "Source : $YOUR_IP:$SOURCE_PORT"
+echo "Target : $TARGET_IP:$TARGET_PORT"
+echo
+
+# Enable IPv4 forwarding
+sysctl -w net.ipv4.ip_forward=1 >/dev/null
+
+# Forward TCP
+iptables -t nat -A PREROUTING \
+    -d "$YOUR_IP" \
+    -p tcp \
+    --dport "$SOURCE_PORT" \
+    -j DNAT \
+    --to-destination "$TARGET_IP:$TARGET_PORT"
+
+# Forward UDP
+iptables -t nat -A PREROUTING \
+    -d "$YOUR_IP" \
+    -p udp \
+    --dport "$SOURCE_PORT" \
+    -j DNAT \
+    --to-destination "$TARGET_IP:$TARGET_PORT"
+
+# SNAT
+iptables -t nat -A POSTROUTING \
+    -p tcp \
+    -d "$TARGET_IP" \
+    --dport "$TARGET_PORT" \
+    -j MASQUERADE
+
+iptables -t nat -A POSTROUTING \
+    -p udp \
+    -d "$TARGET_IP" \
+    --dport "$TARGET_PORT" \
+    -j MASQUERADE
+
+echo
+echo "✅ Port forwarding enabled!"
+echo
+echo "$YOUR_IP:$SOURCE_PORT → $TARGET_IP:$TARGET_PORT"
+echo
